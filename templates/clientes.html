@@ -1,0 +1,44 @@
+{% extends "template_base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Clientes</h1>
+    <table class="table">
+        <thead>
+            <tr>
+                {% if not session.get('is_admin') %}
+                <th>Nombre</th>
+                {% else %}
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Editar</th>
+                <th>Borrar</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for cliente in clientes %}
+            <tr>
+                {% if not session.get('is_admin') %}
+                <td>{{ cliente.nombre }}</td>
+                {% else %}
+                <td>{{ cliente.id }}</td>
+                <td>{{ cliente.nombre }}</td>
+                <td>
+                    <a href="{{ url_for('cliente.editar_cliente', id=cliente.id) }}" class="btn btn-success">Editar</a>
+                </td>
+                <td>
+                    <form action="{{ url_for('cliente.borrar_cliente', id=cliente.id) }}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if session.get('is_admin') %}
+    <a href="{{ url_for('cliente.nuevo_cliente') }}" class="btn btn-primary mb-3">Nuevo Cliente</a>
+    {% endif %}
+{% endblock %}

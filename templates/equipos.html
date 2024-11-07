@@ -1,0 +1,72 @@
+{% extends 'template_base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h4>Listado de Equipos</h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        {% if not session.get('is_admin') %}
+                        <th>Nombre</th>
+                        <th>Precio</th>
+                        <th>Categoría</th>
+                        <th>Marca</th>
+                        <th>Modelo</th>
+                        <th>Característica</th>
+                        <th>Accesorio</th>
+                        {% else %}
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Precio</th>
+                        <th>Categoría</th>
+                        <th>Marca</th>
+                        <th>Modelo</th>
+                        <th>Característica</th>
+                        <th>Accesorio</th>
+                        <th>Editar</th>
+                        <th>Eliminar</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for equipo in equipos %}
+                    <tr>
+                        {% if not session.get('is_admin') %}
+                        <td>{{ equipo.nombre }}</td>
+                        <td>{{ equipo.precio }}</td>
+                        <td>{{ equipo.categoria.nombre }}</td> 
+                        <td>{{ equipo.marca.nombre }}</td> 
+                        <td>{{ equipo.modelo.nombre }}</td> 
+                        <td>{{ equipo.caracteristica.tipo }}</td> 
+                        <td>{{ equipo.accesorio.tipo }}</td> 
+                        {% else %}
+                        <td>{{ equipo.id }}</td>
+                        <td>{{ equipo.nombre }}</td>
+                        <td>{{ equipo.precio }}</td>
+                        <td>{{ equipo.categoria.nombre }}</td> 
+                        <td>{{ equipo.marca.nombre }}</td> 
+                        <td>{{ equipo.modelo.nombre }}</td> 
+                        <td>{{ equipo.caracteristica.tipo }}</td> 
+                        <td>{{ equipo.accesorio.tipo }}</td> 
+                        <td>
+                            <a href="{{ url_for('equipo.editar_equipo', id=equipo.id) }}" class="btn btn-success">Editar</a>
+                        </td>
+                        <td>
+                            <form action="{{ url_for('equipo.borrar_equipo', id=equipo.id) }}" method="post" onsubmit="return confirm('¿Estás seguro de que queres eliminar este equipo?');">
+                                <button type="submit" class="btn btn-danger">Eliminar</button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if session.get('is_admin') %}
+            <a href="{{ url_for('equipo.crear_equipo') }}" class="btn btn-primary">Agregar Nuevo Equipo</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'template_base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h4>Marcas</h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        {% if not session.get('is_admin') %}
+                        <th>Nombre</th>
+                    {% else %}
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Editar</th>
+                        <th>Borrar</th>
+                    {% endif %}
+
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for marca in marcas %}
+                    <tr>
+                        {% if not session.get('is_admin') %}
+                        <td>{{ marca.nombre }}</td>
+
+                        {% else %}
+                        <td>{{ marca.id }}</td>
+                        <td>{{ marca.nombre }}</td>
+                        <td>
+                            <a href="{{ url_for('marca.editar_marca', id=marca.id) }}" class="btn btn-success">Editar</a>
+                        </td>
+                        <td>
+                            <form action="{{ url_for('marca.eliminar_marca', id=marca.id) }}" method="post" style="display:inline;">
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que queres eliminar esta marca?');">Eliminar</button>
+                            </form>
+                        </td>
+                        {% endif %}
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if session.get('is_admin') %}
+        <div class="row mt-5">
+            <div class="col-12">
+                <a href="{{ url_for('marca.crear_marca') }}" class="btn btn-primary mb-2">Agregar Marca</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

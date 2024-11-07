@@ -1,0 +1,18 @@
+{% extends "template_base.html" %}
+
+{% block title %}Lista de Usuarios{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h2>Lista de Usuarios</h2>
+            <ul>
+                {% for usuario in usuarios %}
+                    <li>ID: {{ usuario.id }} - Nombre de Usuario: {{ usuario.username }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

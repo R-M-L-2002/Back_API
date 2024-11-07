@@ -1,0 +1,48 @@
+{% extends 'template_base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h4>Listado de Categorías</h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        {% if not session.get('is_admin') %}
+                        <th>Nombre</th>
+                        {% else %}
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Editar</th>
+                        <th>Eliminar</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for categoria in categorias %}
+                    <tr>
+                        {% if not session.get('is_admin') %}
+                        <td>{{ categoria.nombre }}</td>
+                        {% else %}
+                        <td>{{ categoria.id }}</td>
+                        <td>{{ categoria.nombre }}</td>
+                        <td>
+                            <a href="{{ url_for('categoria.editar_categoria', id=categoria.id) }}" class="btn btn-success">Editar</a>
+                        </td>
+                        <td>
+                            <form action="{{ url_for('categoria.borrar_categoria', id=categoria.id) }}" method="post" onsubmit="return confirm('¿Estás seguro de que queres eliminar esta categoría?');">
+                                <button type="submit" class="btn btn-danger">Eliminar</button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if session.get('is_admin') %}
+            <a href="{{ url_for('categoria.nueva_categoria') }}" class="btn btn-primary">Agregar Nueva Categoría</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
