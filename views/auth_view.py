@@ -105,7 +105,7 @@ def delete_user(user_id):
     return redirect(url_for("auth_view.admin_view"))
 
 
-@auth_view_bp.route("/users", methods=["POST"])
+@auth_view_bp.route("/users", methods=["GET","POST"])
 @jwt_required()
 def create_user():
     try:
@@ -122,3 +122,10 @@ def create_user():
         return jsonify({"msg": "Usuario creado correctamente", "user": user.username}), 201
     except Exception as e:
         return jsonify({"msg": f"Error al crear el usuario: {str(e)}"}), 500
+
+@auth_view_bp.route("/users", methods=["GET"])
+@jwt_required()
+def get_users():
+    users = User.query.all()
+    user_schema = UserMinimalSchema(many=True)
+    return jsonify(user_schema.dump(users)), 200
