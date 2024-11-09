@@ -137,13 +137,9 @@ def update_user(id):
         data = request.get_json()
         usuario = User.query.get_or_404(id)
 
-        # Actualizar el nombre de usuario y la contraseña
+        # Actualizar el nombre de usuario 
         if "nombre_usuario" in data:
             usuario.username = data["nombre_usuario"]
-        if "password" in data:
-            new_password = data["password"]
-            usuario.password_hash = generate_password_hash(new_password, method="pbkdf2", salt_length=8)
-
         try:
             db.session.commit()
             return jsonify({"Mensaje": "Usuario actualizado correctamente."}), 200
@@ -173,20 +169,3 @@ def delete_user(id):
     return jsonify({"Mensaje": "UD no está habilitado para eliminar un usuario."}), 403
 
 
-@auth_view_bp.route("/users", methods=["GET","POST"])
-@jwt_required()
-def create_user():
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"msg": "No data provided"}), 400
-
-        # Crear el usuario
-        user = User(username=data['username'], password=data['password'])
-        db.session.add(user)
-        db.session.commit()
-
-        # Devolver una respuesta JSON válida
-        return jsonify({"msg": "Usuario creado correctamente", "user": user.username}), 201
-    except Exception as e:
-        return jsonify({"msg": f"Error al crear el usuario: {str(e)}"}), 500

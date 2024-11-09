@@ -134,4 +134,5 @@ class UserMinimalSchema(ma.SQLAlchemySchema):
     class Meta:
         model = User
 
+    id = ma.auto_field()
     username = ma.auto_field()
