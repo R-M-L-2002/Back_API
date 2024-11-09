@@ -1,65 +1,66 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from services.marca_service import MarcaService
-
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, make_response
+from app import db
+from schemas import MarcaSchema, MarcaMinimalSchema
+from flask_jwt_extended import get_jwt, jwt_required
+from models import Marca
 marca_bp = Blueprint("marca", __name__)
-marca_service = MarcaService()
 
 
-@marca_bp.route("/marcas")
-def listar_marcas():
-    """Lista todas las marcas."""
-    marcas = marca_service.listar_marcas()
-    return render_template("marcas.html", marcas=marcas)
 
+# Ruta para obtener todas las marcas (GET), agregar una nueva marca (POST)
+@marca_bp.route("/marca", methods=["GET", "POST"])
+@jwt_required()  # Requiere autenticación mediante un token JWT
+def marcas():
+    additional_data = get_jwt()
+    administrador = additional_data.get("administrador", True)
 
-@marca_bp.route("/marcas/crear", methods=["GET", "POST"])
-def crear_marca():
-    """Crea una nueva marca."""
-    if not session.get("is_admin"):
-        return redirect(url_for("marca.listar_marcas"))
-
+    # Crear una nueva marca en la base de datos
     if request.method == "POST":
-        nombre = request.form.get("nombre")
-        if not nombre:
-            flash("El nombre es requerido", "error")
-        else:
-            marca_service.crear_marca(nombre)
-            flash("Marca creada con éxito", "success")
-            return redirect(url_for("marca.listar_marcas"))
+        if administrador:  # Solo los administradores pueden crear una marca
+            data = request.get_json()
+            nueva_marca = Marca(
+                nombre=data.get("nombre")
+            )
 
-    return render_template("crear_marca.html")
+            db.session.add(nueva_marca)
+            db.session.commit()
+            return make_response(MarcaSchema().dump(nueva_marca), 201)
+        return jsonify({"Mensaje": "Ud no está habilitado para crear una marca."}), 403
 
+    # Consulta todos los registros de la tabla Marca
+    marcas = Marca.query.all()
+    # Si el usuario es administrador, devuelve todos los detalles de cada marca
+    if administrador:
+        return MarcaSchema().dump(marcas, many=True)
+    # Si no es administrador, usa el esquema mínimo con menos detalles
+    else:
+        return MarcaMinimalSchema().dump(marcas, many=True)
 
-@marca_bp.route("/marcas/editar/<int:id>", methods=["GET", "POST"])
-def editar_marca(id):
-    """Edita una marca existente."""
-    if not session.get("is_admin"):
-        return redirect(url_for("marca.listar_marcas"))
+# Ruta para actualizar o eliminar una marca específica (PUT, DELETE)
+@marca_bp.route("/marca/<int:id>", methods=["PUT", "DELETE"])
+@jwt_required()  # Requiere autenticación mediante un token JWT
+def actualizar_marca(id):
+    additional_data = get_jwt()
+    administrador = additional_data.get("administrador", True)
 
-    marcas = marca_service.listar_marcas()
-    marca = next((marca for marca in marcas if marca.id == id), None)
+    if not administrador:  # Solo los administradores pueden modificar o eliminar marcas
+        return jsonify({"Mensaje": "Usted no está habilitado para modificar o eliminar esta marca."}), 403
 
+    # Obtener la marca por su ID
+    marca = Marca.query.get(id)
     if not marca:
-        flash("Marca no encontrada", "error")
-        return redirect(url_for("marca.listar_marcas"))
+        return jsonify({"Mensaje": "Marca no encontrada"}), 404
 
-    if request.method == "POST":
-        nombre = request.form.get("nombre")
-        if nombre:
-            marca_service.editar_marca(id, nombre)
-            flash("Marca actualizada con éxito", "success")
-            return redirect(url_for("marca.listar_marcas"))
-        flash("El nombre es requerido", "error")
+    # Si el método es DELETE, eliminar la marca permanentemente
+    if request.method == "DELETE":
+        db.session.delete(marca)
+        db.session.commit()
+        return jsonify({"Mensaje": "Marca eliminada permanentemente"}), 200
 
-    return render_template("editar_marca.html", marca=marca)
+    # Si el método es PUT, actualizar los campos de la marca
+    if request.method == "PUT":
+        data = request.get_json()
+        marca.nombre = data.get("nombre", marca.nombre)  # Si no se pasa un nuevo nombre, se mantiene el actual
 
-
-@marca_bp.route("/marcas/eliminar/<int:id>", methods=["POST"])
-def eliminar_marca(id):
-    """Elimina una marca."""
-    if not session.get("is_admin"):
-        return redirect(url_for("marca.listar_marcas"))
-
-    marca_service.eliminar_marca(id)
-    flash("Marca eliminada con éxito", "success")
-    return redirect(url_for("marca.listar_marcas"))
+        db.session.commit()
+        return make_response(MarcaSchema().dump(marca), 200)

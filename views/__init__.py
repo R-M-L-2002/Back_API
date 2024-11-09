@@ -9,7 +9,7 @@ from views.accesorio_view import accesorio_bp
 from views.equipo_view import equipo_bp
 from views.modelo_view import modelo_bp
 from views.cliente_views import cliente_bp
-from views.user_view import user_bp
+
 
 
 def register_blueprints(app):
@@ -24,4 +24,4 @@ def register_blueprints(app):
     app.register_blueprint(equipo_bp)
     app.register_blueprint(modelo_bp)
     app.register_blueprint(cliente_bp)
-    app.register_blueprint(user_bp)
+

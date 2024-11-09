@@ -14,12 +14,21 @@ from models import (
 )
 
 
-class MarcaSchema(ma.SQLAlchemyAutoSchema):
+# Esquema para el modelo Marca
+class MarcaSchema(ma.SQLAlchemySchema):
     class Meta:
         model = Marca
 
-    id = ma.auto_field()
-    nombre = ma.auto_field(required=True)
+    id = ma.auto_field()  # Campo id de la marca
+    nombre = ma.auto_field()  # Nombre de la marca
+
+
+# Esquema minimalista para el modelo Marca
+class MarcaMinimalSchema(ma.SQLAlchemySchema):
+    class Meta:
+        model = Marca
+
+    nombre = ma.auto_field()  # Solo incluye el nombre de la marca
 
 
 class FabricanteSchema(ma.SQLAlchemyAutoSchema):
