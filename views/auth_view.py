@@ -13,28 +13,23 @@ auth_view_bp = Blueprint("auth_view", __name__)
 
 @auth_view_bp.route("/login", methods=["POST"])
 def login_view():
-    # Verificar si el encabezado Authorization contiene credenciales en formato Basic
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Basic "):
         return jsonify({"msg": "Autenticación requerida"}), 401
 
-    # Decodificar las credenciales de Base64
     encoded_credentials = auth_header.split(" ")[1]
     decoded_credentials = b64decode(encoded_credentials).decode("utf-8")
-    
-    # Separar el nombre de usuario y la contraseña
+
     username, password = decoded_credentials.split(":")
 
-    # Intentar encontrar al usuario
     user = User.query.filter_by(username=username).first()
 
     if user and check_password_hash(user.password_hash, password):
         # Generar el token JWT
-        access_token = create_access_token(identity={"id": user.id, "is_admin": user.is_admin})
-        return jsonify({"Token": access_token}), 200
+        token = create_access_token(identity={"id": user.id, "is_admin": user.is_admin})
+        return jsonify({"Token": token}), 200
     else:
         return jsonify({"msg": "Credenciales incorrectas"}), 401
-
 
 @auth_view_bp.route('/users', methods=['POST'])
 def register_view():
@@ -91,81 +86,70 @@ def admin_view():
     usuarios = User.query.all()
     return render_template("admin.html", usuarios=usuarios)
 
+@auth_view_bp.route("/users/<int:user_id>", methods=["PUT", "DELETE"])
+@jwt_required()
+def modify_user(user_id):
+    additional_data = get_jwt()
+    administrador = additional_data.get("is_admin", True)
+
+    if not administrador:
+        return jsonify({"Mensaje": "No tienes permisos para modificar o eliminar un usuario."}), 403
+
+    usuario = User.query.get_or_404(user_id)
+
+    if request.method == "PUT":
+        data = request.get_json()
+        username = data.get("nombre_usuario")
+        password = data.get("password")
+        is_admin = data.get("is_admin", usuario.is_admin)
+
+        if username:
+            usuario.username = username
+        if password:
+            usuario.password_hash = generate_password_hash(password, method="pbkdf2", salt_length=8)
+        usuario.is_admin = is_admin
+
+        try:
+            db.session.commit()
+            return jsonify({"Mensaje": "Usuario actualizado exitosamente"}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"Error": "Error al actualizar el usuario", "detalle": str(e)}), 500
+
+    elif request.method == "DELETE":
+        try:
+            db.session.delete(usuario)
+            db.session.commit()
+            return jsonify({"Mensaje": "Usuario eliminado exitosamente"}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"Error": "Error al eliminar el usuario", "detalle": str(e)}), 500
+
+
 @auth_view_bp.route("/users", methods=["GET", "POST"])
 @jwt_required()
 def user():
     additional_data = get_jwt()
-    administrador = additional_data.get("administrador", False)
+    administrador = additional_data.get("is_admin", True)
 
-    # Endpoint POST para crear usuario
     if request.method == "POST":
         if administrador:
             data = request.get_json()
             username = data.get("nombre_usuario")
             password = data.get("password")
 
-            # Verificar si el usuario ya existe
-            si_existe_usuario = User.query.filter_by(username=username).first()
-            if si_existe_usuario:
+            if User.query.filter_by(username=username).first():
                 return jsonify({"Error": "El nombre de usuario ya existe."}), 400
 
-            # Crear hash de la contraseña y agregar el usuario
-            password_hasheada = generate_password_hash(password, method="pbkdf2", salt_length=8)
-            nuevo_usuario = User(username=username, password_hash=password_hasheada)
+            password_hash = generate_password_hash(password, method="pbkdf2", salt_length=8)
+            nuevo_usuario = User(username=username, password_hash=password_hash)
             db.session.add(nuevo_usuario)
             db.session.commit()
-
             return jsonify({"Usuario Creado": username}), 201
-        return jsonify({"Mensaje": "UD no está habilitado para crear un usuario."}), 403
 
-    # Endpoint GET para listar usuarios
+        return jsonify({"Mensaje": "No tienes permisos para crear un usuario."}), 403
+
     usuarios = User.query.all()
     user_schema = UserSchema(many=True) if administrador else UserMinimalSchema(many=True)
     result = user_schema.dump(usuarios)
-    print("Datos enviados al frontend:", result)  # Imprime los datos enviados al frontend
-
     return jsonify(result)
-
-
-@auth_view_bp.route("/users/<int:id>", methods=["PUT"])
-@jwt_required()
-def update_user(id):
-    additional_data = get_jwt()
-    administrador = additional_data.get("administrador", False)
-
-    if administrador:
-        data = request.get_json()
-        usuario = User.query.get_or_404(id)
-
-        # Actualizar el nombre de usuario 
-        if "nombre_usuario" in data:
-            usuario.username = data["nombre_usuario"]
-        try:
-            db.session.commit()
-            return jsonify({"Mensaje": "Usuario actualizado correctamente."}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"Error": "Ocurrió un error al actualizar el usuario.", "detalle": str(e)}), 500
-
-    return jsonify({"Mensaje": "UD no está habilitado para actualizar un usuario."}), 403
-
-
-@auth_view_bp.route("/users/<int:id>", methods=["DELETE"])
-@jwt_required()
-def delete_user(id):
-    additional_data = get_jwt()
-    administrador = additional_data.get("administrador", False)
-
-    if administrador:
-        usuario = User.query.get_or_404(id)
-        try:
-            db.session.delete(usuario)
-            db.session.commit()
-            return jsonify({"Mensaje": "Usuario eliminado correctamente."}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"Error": "Ocurrió un error al eliminar el usuario.", "detalle": str(e)}), 500
-
-    return jsonify({"Mensaje": "UD no está habilitado para eliminar un usuario."}), 403
-
-
